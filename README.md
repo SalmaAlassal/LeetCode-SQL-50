@@ -432,3 +432,196 @@ UNION
 UNION
 (SELECT 'High Salary' AS category, COUNT(*) AS accounts_count FROM Accounts WHERE income > 50000)
 ```
+------------------------------------------------------------
+
+## Subqueries
+
+### [1978. Employees Whose Manager Left the Company](https://leetcode.com/problems/employees-whose-manager-left-the-company/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT employee_id
+FROM Employees
+WHERE salary < 30000 AND manager_id NOT IN(
+    SELECT employee_id
+    FROM Employees
+)
+ORDER BY employee_id
+```
+
+### [626. Exchange Seats](https://leetcode.com/problems/exchange-seats/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT IF (id < (SELECT MAX(id) FROM Seat),
+            IF(id % 2 = 0, id - 1, id + 1),
+            IF(id % 2 = 0, id - 1, id)
+        ) AS id, student
+FROM Seat
+ORDER BY id;
+```
+
+### [1341. Movie Rating](https://leetcode.com/problems/movie-rating/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+(SELECT name AS results
+FROM Users u
+JOIN MovieRating mr
+ON u.user_id = mr.user_id
+GROUP BY name
+ORDER BY COUNT(rating) DESC, name
+LIMIT 1)
+
+UNION ALL
+
+(SELECT title AS results
+FROM Movies m
+JOIN MovieRating mr
+ON m.movie_id = mr.movie_id
+WHERE EXTRACT(YEAR_MONTH FROM created_at) = 202002
+GROUP BY title
+ORDER BY AVG(rating) DESC, title
+LIMIT 1)
+```
+
+### [1321. Restaurant Growth](https://leetcode.com/studyplan/top-sql-50/)
+
+```sql
+SELECT visited_on,
+    (
+        SELECT SUM(amount)
+        FROM Customer
+        WHERE visited_on BETWEEN DATE_SUB(c.visited_on, INTERVAL 6 DAY) AND c.visited_on
+    ) AS amount,
+    ROUND(
+        (
+        SELECT SUM(amount) / 7
+        FROM Customer
+        WHERE visited_on BETWEEN DATE_SUB(c.visited_on, INTERVAL 6 DAY) AND c.visited_on
+        )
+    , 2) AS average_amount
+FROM Customer c
+WHERE visited_on >= (
+    SELECT DATE_ADD(MIN(visited_on), INTERVAL 6 DAY)
+    FROM Customer
+)
+GROUP BY visited_on;
+```
+
+### [602. Friend Requests II: Who Has the Most Friends](https://leetcode.com/problems/friend-requests-ii-who-has-the-most-friends/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+WITH base AS(
+    SELECT requester_id id FROM RequestAccepted
+    UNION ALL
+    SELECT accepter_id id FROM RequestAccepted
+)
+
+SELECT id, COUNT(id) num FROM base
+GROUP BY id
+ORDER BY num DESC
+LIMIT 1;
+```
+### [585. Investments in 2016](https://leetcode.com/problems/investments-in-2016/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT ROUND(SUM(tiv_2016), 2) AS tiv_2016
+FROM Insurance
+WHERE tiv_2015 IN (
+    SELECT tiv_2015
+    FROM Insurance
+    GROUP BY tiv_2015
+    HAVING COUNT(tiv_2015) > 1
+) AND (lat, lon) IN (
+    SELECT lat, lon
+    FROM Insurance
+    GROUP BY lat, lon
+    HAVING COUNT(lat) = 1
+)
+```
+
+### [185. Department Top Three Salaries](https://leetcode.com/problems/department-top-three-salaries/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT d.name AS Department,
+    e.name AS Employee,
+    e.salary AS Salary
+FROM Employee e
+JOIN Department d ON e.departmentId = d.id
+WHERE 3 > (
+    SELECT COUNT(DISTINCT e2.salary)
+    FROM Employee e2
+    WHERE e.departmentId = e2.departmentId AND
+        e2.salary > e.salary
+)
+ORDER BY Department, Salary DESC;
+```
+------------------------------------------------------------
+
+## Advanced String Functions / Regex / Clause
+
+### [1667. Fix Names in a Table](https://leetcode.com/problems/fix-names-in-a-table/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT user_id,
+    CONCAT(UPPER(SUBSTRING(name, 1, 1)), LOWER(SUBSTRING(name, 2))) AS name
+FROM Users
+ORDER BY user_id
+```
+
+### [1527. Patients With a Condition](https://leetcode.com/problems/patients-with-a-condition/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT *
+FROM Patients
+WHERE conditions LIKE "% DIAB1%" OR conditions LIKE "DIAB1%"
+```
+
+### [196. Delete Duplicate Emails](https://leetcode.com/problems/delete-duplicate-emails/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+DELETE p1 FROM Person p1, Person p2
+WHERE  p1.email = p2.email AND p1.id > p2.id
+```
+
+### [176. Second Highest Salary](https://leetcode.com/problems/second-highest-salary/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT
+(SELECT DISTINCT salary
+FROM Employee
+ORDER BY salary DESC
+LIMIT 1
+OFFSET 1) AS SecondHighestSalary
+```
+
+### [1484. Group Sold Products By The Date](https://leetcode.com/problems/group-sold-products-by-the-date/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT sell_date,
+    COUNT(DISTINCT product) AS num_sold,
+    GROUP_CONCAT(DISTINCT product ORDER BY product ASC separator ',')AS products
+FROM Activities
+GROUP BY sell_date
+ORDER BY sell_date
+```
+
+### [1327. List the Products Ordered in a Period](https://leetcode.com/problems/list-the-products-ordered-in-a-period/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT product_name, SUM(unit) AS unit
+FROM Orders o
+LEFT JOIN Products p
+ON o.product_id = p.product_id
+WHERE order_date BETWEEN '2020-02-01' AND '2020-02-029'
+GROUP BY p.product_id
+HAVING SUM(unit) >= 100
+```
+
+### [1517. Find Users With Valid E-Mails](https://leetcode.com/problems/find-users-with-valid-e-mails/description/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+SELECT *
+FROM Users
+WHERE mail regexp '^[a-zA-Z][a-zA-Z0-9_.-]*@leetcode\\.com$'
+```
+
+------------------------------------------------------------
